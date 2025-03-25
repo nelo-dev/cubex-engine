@@ -1,0 +1,3 @@
+[submodule "lib/vkutils"]
+	path = lib/vkutils
+	url = https://github.com/nelo-dev/vkutils.git
