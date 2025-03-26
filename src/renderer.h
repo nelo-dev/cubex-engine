@@ -27,6 +27,11 @@ typedef struct Renderer_T {
     VkuPipeline blockPipeline;
     pthread_mutex_t swapRendCksMutex;
 
+    VkuBuffer subchunkDebugMesh;
+    VkuBuffer chunkDebugMesh;
+    VkuPipeline debugPipeline;
+    uint32_t debugViewMode;
+
     pthread_t renderThread;
     pthread_mutex_t stopMutex;
     pthread_mutex_t presenterMutex;

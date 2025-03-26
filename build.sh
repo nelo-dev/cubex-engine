@@ -6,6 +6,8 @@ glslc -O shader/block.vert -o shader/block_vert.spv
 glslc -O shader/block.frag -o shader/block_frag.spv
 glslc -O shader/tjunctionPP.vert -o shader/tjunctionPP_vert.spv
 glslc -O shader/tjunctionPP.frag -o shader/tjunctionPP_frag.spv
+glslc -O shader/debug_box.vert -o shader/debug_box_vert.spv
+glslc -O shader/debug_box.frag -o shader/debug_box_frag.spv
 
 g++ -Ofast -c lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc.cpp -o lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc_linux64.o
 

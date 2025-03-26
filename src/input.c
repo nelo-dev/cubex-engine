@@ -26,6 +26,7 @@ InputHandler createInputHandler(VkuWindow window) {
     registerKey(handler, GLFW_KEY_F12);
     registerKey(handler, GLFW_KEY_M);
     registerKey(handler, GLFW_KEY_G);
+    registerKey(handler, GLFW_KEY_F7);
 
     handler->mouseLastX = 0.0f;
     handler->mouseLastY = 0.0f;

@@ -75,6 +75,14 @@ void rendererHandleInput(Renderer renderer)
         game->renderer->camera->camPos.z = rand() % 1000000;
     }
 
+    if (getKeyState(renderer->inputHandler, GLFW_KEY_F7) == KEY_RELEASED)
+    {
+        if (renderer->debugViewMode < 3) 
+            renderer->debugViewMode++;
+        else
+            renderer->debugViewMode = 0;
+    }
+
     static int msaa = true;
     if (getKeyState(renderer->inputHandler, GLFW_KEY_M) == KEY_RELEASED)
     {
@@ -218,7 +226,103 @@ void renderWorld(VkuFrame frame, Renderer renderer, mat4 view, mat4 proj)
         }
     }
 
+    if (renderer->debugViewMode > 0) {
+        vkuFrameBindPipeline(frame, renderer->debugPipeline);
+
+        for (int locZ = 1; locZ < world->renderDistance - 1; locZ++) {
+            for (int locX = 1; locX < world->renderDistance - 1; locX++) {
+                Chunk chunk = world->renderedChunks[locX + locZ * world->renderDistance];
+
+                vec2 distVec;
+                glm_vec2_sub((vec2) {(float) locX, (float) locZ}, (vec2) {(float) world->renderDistance / 2.0f, (float) world->renderDistance / 2.0f}, distVec);
+                if (glm_vec2_norm(distVec) > (float) 6)
+                    continue;
+
+                if (chunk == NULL || !atomic_load(&chunk->created)) {
+                    continue;
+                }
+
+                chunkMesh mesh = chunk->chunkMesh;
+
+                float xoffset = (float) ((int) renderer->camera->camPos.x / SC_LEN) * SC_LEN;
+                float zoffset = (float) ((int) renderer->camera->camPos.z / SC_LEN) * SC_LEN;
+
+                vec3 aabbMin = { (float)chunk->chunkX * SC_LEN - xoffset, 0.0f, (float)chunk->chunkZ * SC_LEN - zoffset };
+                vec3 aabbMax = { (float)chunk->chunkX * SC_LEN - xoffset + SC_LEN, SC_CNT * SC_LEN, (float)chunk->chunkZ * SC_LEN - zoffset + SC_LEN };
+
+                if (!AABBInFrustum(frustum, aabbMin, aabbMax)) {
+                    continue;
+                }
+
+                for (uint32_t i = 0; i < SC_CNT; i++) {
+                    mat4 modelviewproj = GLM_MAT4_IDENTITY_INIT;
+                    mat4 model = GLM_MAT4_IDENTITY_INIT;
+                    glm_translate(modelviewproj, (vec3) {(float) chunk->chunkX * SC_LEN - xoffset, i * SC_LEN, (float) chunk->chunkZ * SC_LEN - zoffset});
+                    glm_mat4_copy(modelviewproj, model);
+                    glm_mat4_mul(viewproj, modelviewproj, modelviewproj);
+
+                    struct pushConstant {
+                        mat4 modelviewproj;
+                    };
+        
+                    struct pushConstant pushC;
+                    glm_mat4_copy(modelviewproj, pushC.modelviewproj);
+
+                    if (i == 0 && renderer->debugViewMode >= 2) {
+                        vkuFramePipelinePushConstant(frame, renderer->debugPipeline, &pushC, sizeof(struct pushConstant));
+                        vkuFrameDrawVertexBuffer(frame, renderer->chunkDebugMesh, 36);
+                    }
+
+                    if (chunk->subchunks[i] != NULL && (renderer->debugViewMode == 1 || renderer->debugViewMode == 3)) {
+                        vkuFramePipelinePushConstant(frame, renderer->debugPipeline, &pushC, sizeof(struct pushConstant));
+                        vkuFrameDrawVertexBuffer(frame, renderer->subchunkDebugMesh, 36);
+                    }
+                }
+            }
+        }
+    }
+
     pthread_mutex_unlock(&renderer->swapRendCksMutex);
+}
+
+void generateCubeTriangles(float x, float y, float z, float r, float g, float b, float padding, float* vertices) {
+    // Ensure padding doesn't exceed half of any dimension
+    float px = (x > 2 * padding) ? padding : x / 2;
+    float py = (y > 2 * padding) ? padding : y / 2;
+    float pz = (z > 2 * padding) ? padding : z / 2;
+
+    // Define 8 unique vertices with padding applied
+    float v[] = {
+        px,  py,  pz,        // Bottom-left-front
+        x - px,  py,  pz,    // Bottom-right-front
+        x - px,  y - py,  pz,// Top-right-front
+        px,  y - py,  pz,    // Top-left-front
+        px,  py,  z - pz,    // Bottom-left-back
+        x - px,  py,  z - pz,// Bottom-right-back
+        x - px,  y - py,  z - pz, // Top-right-back
+        px,  y - py,  z - pz // Top-left-back
+    };
+
+    // Indices for triangle strips (no internal diagonal)
+    int indices[] = {
+        0, 1, 2,  2, 3, 0,  // Front face
+        1, 5, 6,  6, 2, 1,  // Right face
+        5, 4, 7,  7, 6, 5,  // Back face
+        4, 0, 3,  3, 7, 4,  // Left face
+        3, 2, 6,  6, 7, 3,  // Top face
+        4, 5, 1,  1, 0, 4   // Bottom face
+    };
+
+    // Fill vertex array with position and color
+    for (int i = 0; i < 36; i++) {
+        int idx = indices[i] * 3;  // Get position index
+        vertices[i * 6] = v[idx];      // x
+        vertices[i * 6 + 1] = v[idx+1];// y
+        vertices[i * 6 + 2] = v[idx+2];// z
+        vertices[i * 6 + 3] = r;       // r
+        vertices[i * 6 + 4] = g;       // g
+        vertices[i * 6 + 5] = b;       // b
+    }
 }
 
 double getFrameDeltaTime()
@@ -357,6 +461,45 @@ void * renderFunction(void * arg)
 
     SkyBox skybox = createSkyBox(renderer, renderer->blockRenderStage);
 
+    float chunkDebugMeshVertices[216] = {};
+    float subchunkDebugMeshVertices[216] = {};
+    generateCubeTriangles(SC_LEN, SC_LEN * SC_CNT, SC_LEN, 0.0f, 1.0f, 0.0f, 0.0f, chunkDebugMeshVertices);
+    generateCubeTriangles(SC_LEN, SC_LEN, SC_LEN, 1.0f, 0.0f, 0.0f, 1.0f, subchunkDebugMeshVertices);
+
+    VkuBuffer stagingBuffer = vkuCreateVertexBuffer(renderer->context->memoryManager, sizeof(chunkDebugMeshVertices), VKU_BUFFER_USAGE_CPU_TO_GPU);
+
+    vkuSetVertexBufferData(renderer->context->memoryManager, stagingBuffer, chunkDebugMeshVertices, sizeof(chunkDebugMeshVertices));
+    renderer->chunkDebugMesh = vkuCreateVertexBuffer(renderer->context->memoryManager, sizeof(chunkDebugMeshVertices), VKU_BUFFER_USAGE_GPU_ONLY);
+    VkDeviceSize sizes[] = {sizeof(chunkDebugMeshVertices)};
+    vkuCopyBuffer(renderer->context->memoryManager, &stagingBuffer, &renderer->chunkDebugMesh, sizes, 1);
+
+    vkuSetVertexBufferData(renderer->context->memoryManager, stagingBuffer, subchunkDebugMeshVertices, sizeof(subchunkDebugMeshVertices));
+    renderer->subchunkDebugMesh = vkuCreateVertexBuffer(renderer->context->memoryManager, sizeof(subchunkDebugMeshVertices), VKU_BUFFER_USAGE_GPU_ONLY);
+    vkuCopyBuffer(renderer->context->memoryManager, &stagingBuffer, &renderer->subchunkDebugMesh, sizes, 1);
+
+    vkuDestroyVertexBuffer(stagingBuffer, renderer->context->memoryManager, VK_TRUE);
+
+    VkuVertexAttribute debugAttrib1 = {.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0};
+    VkuVertexAttribute debugAttrib2 = {.format = VK_FORMAT_R32G32B32_SFLOAT, .offset = sizeof(float) * 3};
+    VkuVertexAttribute debugVertexAttribs[] = {debugAttrib1, debugAttrib2};
+    VkuVertexLayout debugVertexLayout = {.attributeCount = 2, .attributes = debugVertexAttribs, .vertexSize = 6 * sizeof(float)};
+    VkuPipelineCreateInfo debugPipelineInfo = {
+        .fragmentShaderSpirV = vkuReadFile("./shader/debug_box_frag.spv", &debugPipelineInfo.fragmentShaderLength),
+        .vertexShaderSpirV = vkuReadFile("./shader/debug_box_vert.spv", &debugPipelineInfo.vertexShaderLength),
+        .polygonMode = VK_POLYGON_MODE_LINE,
+        .descriptorSet = NULL,
+        .vertexLayout = debugVertexLayout,
+        .depthTestEnable = VK_TRUE,
+        .depthTestWrite = VK_TRUE,
+        .depthCompareMode = VK_COMPARE_OP_LESS,
+        .renderStage = renderer->blockRenderStage,
+        .cullMode = VK_CULL_MODE_BACK_BIT};
+
+    renderer->debugPipeline = vkuCreatePipeline(renderer->context, &debugPipelineInfo);
+
+    free(debugPipelineInfo.fragmentShaderSpirV);
+    free(debugPipelineInfo.vertexShaderSpirV);
+
     pthread_mutex_init(&renderer->swapRendCksMutex, NULL);
 
     pthread_mutex_lock(&renderer->presenterMutex);
@@ -413,6 +556,9 @@ void * renderFunction(void * arg)
     pthread_mutex_unlock(&renderer->cleanupMutex);
     
     pthread_mutex_destroy(&renderer->swapRendCksMutex);
+    vkuDestroyPipeline(renderer->context, renderer->debugPipeline);
+    vkuDestroyVertexBuffer(renderer->chunkDebugMesh, renderer->context->memoryManager, VK_TRUE);
+    vkuDestroyVertexBuffer(renderer->subchunkDebugMesh, renderer->context->memoryManager, VK_TRUE);
     destroySkyBox(skybox, renderer);
     vkuDestroyPipeline(renderer->context, ppPipeline);
     vkuDestroyDescriptorSet(ppDescriptorSet);

@@ -6,13 +6,16 @@ glslc.exe -O shader/block.vert -o shader/block_vert.spv
 glslc.exe -O shader/block.frag -o shader/block_frag.spv
 glslc.exe -O shader/tjunctionPP.vert -o shader/tjunctionPP_vert.spv
 glslc.exe -O shader/tjunctionPP.frag -o shader/tjunctionPP_frag.spv
+glslc.exe -O shader/debug_box.vert -o shader/debug_box_vert.spv
+glslc.exe -O shader/debug_box.frag -o shader/debug_box_frag.spv
+
 
 g++ -Ofast -c lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc.cpp -o lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc_win64.o
 
 setlocal enabledelayedexpansion
 
 REM Initialize variables
-set "gcc_cmd=gcc -Ofast -finline-functions -fprefetch-loop-arrays -Wno-aggressive-loop-optimizations -pipe lib/dvec3/dvec3.c lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc_win64.o lib/vkutils/src/vkutils.c lib/datastrucs/hashmap.c lib/datastrucs/dynqueue.c lib/datastrucs/fifoqueue.c lib/datastrucs/ts_fifo.c -lstdc++"
+set "gcc_cmd=gcc -g -Ofast -flto -finline-functions -fprefetch-loop-arrays -Wno-aggressive-loop-optimizations -pipe lib/dvec3/dvec3.c lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc_win64.o lib/vkutils/src/vkutils.c lib/datastrucs/hashmap.c lib/datastrucs/dynqueue.c lib/datastrucs/fifoqueue.c lib/datastrucs/ts_fifo.c -lstdc++"
 set "output_file=cubex-engine.exe"
 set "c_files="
 set "additional= -lglfw3 -lm -lpthread -lvulkan-1"
