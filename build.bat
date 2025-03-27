@@ -15,7 +15,7 @@ g++ -Ofast -c lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc.cpp -o lib/vkutils/lib/v
 setlocal enabledelayedexpansion
 
 REM Initialize variables
-set "gcc_cmd=gcc -g -Ofast -flto -finline-functions -fprefetch-loop-arrays -Wno-aggressive-loop-optimizations -pipe lib/dvec3/dvec3.c lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc_win64.o lib/vkutils/src/vkutils.c lib/datastrucs/hashmap.c lib/datastrucs/dynqueue.c lib/datastrucs/fifoqueue.c lib/datastrucs/ts_fifo.c -lstdc++"
+set "gcc_cmd=gcc -g -Ofast -flto=auto -finline-functions -fprefetch-loop-arrays -Wno-aggressive-loop-optimizations -pipe lib/dvec3/dvec3.c lib/vkutils/lib/vk_mem_alloc/vk_mem_alloc_win64.o lib/vkutils/src/vkutils.c lib/datastrucs/hashmap.c lib/datastrucs/dynqueue.c lib/datastrucs/fifoqueue.c lib/datastrucs/ts_fifo.c -lstdc++"
 set "output_file=cubex-engine.exe"
 set "c_files="
 set "additional= -lglfw3 -lm -lpthread -lvulkan-1"

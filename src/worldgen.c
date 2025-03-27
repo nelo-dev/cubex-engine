@@ -93,7 +93,7 @@ void generateTerrain(WorldGenerator generator, Chunk chunk)
     if (rand() % 2 == 0)
         for (uint32_t z = 0; z < SC_LEN; z++) {
             for (uint32_t x = 0; x < SC_LEN; x++) {
-                setBlockInChunk(chunk, x, 224, z, 1);
+                setBlockInChunk(chunk, x, 255, z, 1);
             }
         }
 

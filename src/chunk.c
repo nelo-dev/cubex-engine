@@ -91,6 +91,8 @@ Block getBlockInChunk(Chunk chunk, int x, int y, int z)
 
 void setBlockInChunk(Chunk chunk, int x, int y, int z, Block blockType)
 {
+    if (blockType == BLK_AIR && chunk->subchunks[y / SC_LEN]  == NULL) return;
+
     Block *pBlock = getBlockRefrenceInChunk(chunk, x, y, z, true);
     if (pBlock == NULL)
         return;
@@ -271,19 +273,10 @@ void unlock_chunks(Chunk chunks[], int count) {
 
 void createLightSubchunks(Chunk chunk, Chunk sidechunks[4])
 {
-    static const int directions[4][2] = {
-        {CHUNK_NX, CHUNK_PX}, 
-        {CHUNK_PX, CHUNK_NX}, 
-        {CHUNK_NZ, CHUNK_PZ}, 
-        {CHUNK_PZ, CHUNK_NZ}
-    };
-
     for (uint32_t j = 0; j < SC_CNT; j++) {
         if (chunk->subchunks[j] == NULL) {
             for (int i = 0; i < 4; i++) {
-                int dir1 = directions[i][0], dir2 = directions[i][1];
-
-                if (sidechunks[dir1] && sidechunks[dir1]->subchunks[j] &&sidechunks[dir1]->subchunks[j]->border_blocks[dir2]) {
+                if (sidechunks[i] && sidechunks[i]->subchunks[j] &&sidechunks[i]->subchunks[j]->border_blocks[i]) {
                     chunk->subchunks[j] = createSubchunk();
                     break;
                 }
@@ -291,10 +284,8 @@ void createLightSubchunks(Chunk chunk, Chunk sidechunks[4])
         } 
         else { 
             for (int i = 0; i < 4; i++) {
-                int dir1 = directions[i][0], dir2 = directions[i][1];
-
-                if (chunk->subchunks[j]->border_blocks[dir2] && sidechunks[dir1] && sidechunks[dir1]->subchunks[j] == NULL) {
-                    sidechunks[dir1]->subchunks[j] = createSubchunk();
+                if (chunk->subchunks[j]->border_blocks[i] && sidechunks[i] && sidechunks[i]->subchunks[j] == NULL) {
+                    sidechunks[i]->subchunks[j] = createSubchunk();
                 }
             }
         }

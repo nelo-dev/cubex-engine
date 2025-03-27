@@ -248,6 +248,11 @@ void *lightingFunction(void *arg)
                 int16_t ny = item.y + offsets[i][1];
                 int16_t nz = item.z + offsets[i][2];
 
+                if (ny == SC_CNT * SC_LEN) {
+                    maxNewLight = UINT4_MAX;
+                    break;
+                }
+
                 Block *scanBlk;
                 LightValue *scanLv;
                 if (getBlockAndLight(info.chunks, nx, ny, nz, &scanBlk, &scanLv) == 0) {
@@ -256,6 +261,8 @@ void *lightingFunction(void *arg)
                         maxNewLight = candidate;
                     }
                 }
+
+                if (maxNewLight == UINT4_MAX) break;
             }
 
             if (maxNewLight > currentLight) {

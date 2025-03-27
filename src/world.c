@@ -351,7 +351,14 @@ void setBlockInWorld(World world, int x, int y, int z, Block block) {
         setMeshingState(&sideChunk[CHUNK_NZ]->meshingState, MESH_STATE_NEEDS_MESHING);
     }
 
-
+    if (y >= 0 && y < SC_CNT * SC_LEN && dstChunk->subchunks[y / SC_LEN] != NULL)
+        for (int i = 0; i < 4; i++) {
+            if (dstChunk->subchunks[y / SC_LEN]->border_blocks[i] &&
+                sideChunk[i] &&
+                sideChunk[i]->subchunks[y / SC_LEN] == NULL) {
+                sideChunk[i]->subchunks[y / SC_LEN] = createSubchunk();
+            }
+        }
 }
 
 Block * getBlockInWorld(World world, int x, int y, int z)

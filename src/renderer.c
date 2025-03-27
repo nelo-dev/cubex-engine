@@ -66,7 +66,7 @@ void rendererHandleInput(Renderer renderer)
     if (getKeyState(renderer->inputHandler, GLFW_KEY_R) == KEY_HELD) {
         int ix, iz, iy;
         CameraToWorldCoords(renderer->camera->camPos.x, renderer->camera->camPos.y, renderer->camera->camPos.z, &ix, &iy, &iz);
-        setBlockInWorld(game->world, ix, iy, iz, BLK_AIR);
+        setBlockInWorld(game->world, ix, iy, iz, 1);
     }
 
     if (getKeyState(renderer->inputHandler, GLFW_KEY_P) == KEY_RELEASED)
@@ -369,7 +369,7 @@ void * renderFunction(void * arg)
     renderer->presenter = vkuCreatePresenter(&presenterCreateInfo);
 
     renderer->inputHandler = createInputHandler(renderer->presenter->window);
-    renderer->camera = createCamera((dvec3) {.x = 0.0f, .y = 200.0f, .z = 0.0f});
+    renderer->camera = createCamera((dvec3) {.x = -1.0f, .y = 128.0f, .z = -1.0f});
 
     VkuRenderStageCreateInfo renderStageCreateInfo = {
         .msaaSamples = vkuContextGetMaxSampleCount(renderer->context),
